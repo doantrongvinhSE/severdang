@@ -19,7 +19,42 @@ const getAllPosts = async ({ hasFeedback = false, sort = 'updatedAt' } = {}) => 
       raw: true
   });
 
-  return rows;
+  // Thêm count_today cho mỗi post
+  const postsWithCountToday = await Promise.all(
+    rows.map(async (post) => {
+      let count_today = 0;
+      
+      if (post.feedback) {
+        // Lấy ngày hôm nay (bắt đầu từ 00:00:00)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Lấy ngày mai (để làm điều kiện <)
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        // Đếm comment hôm nay cho post này
+        const commentCount = await CommentModel.count({
+          where: {
+            id_post: post.feedback,
+            timestamp: {
+              [Op.gte]: today,
+              [Op.lt]: tomorrow
+            }
+          }
+        });
+        
+        count_today = commentCount;
+      }
+
+      return {
+        ...post,
+        count_today
+      };
+    })
+  );
+
+  return postsWithCountToday;
 };
 
 const createPost = async ({ name, link, id_user }) => {
