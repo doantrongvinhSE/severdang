@@ -3,9 +3,38 @@ const commentService = require('../services/commentService');
 
 const getAllComments = async (req, res) => {
     try {
-        const { sort } = req.query;
-        const comments = await commentService.getAllComments({ sort: sort || 'timestamp' });
-        res.json({ success: true, data: comments });
+        const { sort, page = 1, limit = 10 } = req.query;
+        
+        // Chuyển đổi page và limit thành số
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        
+        // Validate tham số
+        if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Page phải >= 1, limit phải từ 1-100' 
+            });
+        }
+        
+        const result = await commentService.getAllComments({ 
+            sort: sort || 'timestamp',
+            page: pageNum,
+            limit: limitNum
+        });
+        
+        res.json({ 
+            success: true, 
+            data: result.comments,
+            pagination: {
+                currentPage: pageNum,
+                totalPages: result.totalPages,
+                totalItems: result.totalItems,
+                itemsPerPage: limitNum,
+                hasNextPage: pageNum < result.totalPages,
+                hasPrevPage: pageNum > 1
+            }
+        });
     } catch (err) { 
         res.status(500).json({ success: false, message: err.message });
      }

@@ -5,13 +5,28 @@ const moment = require('moment-timezone');
 
 const PostModel = require('../models/postModel');
 
-const getAllComments = async ({ sort = 'timestamp' } = {}) => {
+const getAllComments = async ({ sort = 'timestamp', page = 1, limit = 10 } = {}) => {
   // Danh sách các field được phép sort
   const allowedSortFields = ['timestamp'];
 
   // Nếu field sort không hợp lệ, fallback về 'timestamp'
   const sortField = allowedSortFields.includes(sort) ? sort : 'timestamp';
 
+  // Tính toán offset cho phân trang
+  const offset = (page - 1) * limit;
+
+  // Lấy tổng số bản ghi
+  const totalItems = await CommentModel.count({
+    include: [
+      {
+        model: PostModel,
+        as: 'post',
+        attributes: []
+      }
+    ]
+  });
+
+  // Lấy dữ liệu với phân trang
   const rows = await CommentModel.findAll({
     include: [
       {
@@ -20,11 +35,21 @@ const getAllComments = async ({ sort = 'timestamp' } = {}) => {
         attributes: ['id', 'name', 'link']
       }
     ],
-    order: [[sortField, 'DESC']]
-    // Không dùng raw: true để giữ được quan hệ
+    order: [[sortField, 'DESC']],
+    limit: limit,
+    offset: offset
   });
 
-  return rows;
+  // Tính tổng số trang
+  const totalPages = Math.ceil(totalItems / limit);
+
+  return {
+    comments: rows,
+    totalItems,
+    totalPages,
+    currentPage: page,
+    itemsPerPage: limit
+  };
 };
 
 
