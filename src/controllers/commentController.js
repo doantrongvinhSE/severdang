@@ -3,7 +3,7 @@ const commentService = require('../services/commentService');
 
 const getAllComments = async (req, res) => {
     try {
-        const { sort, page = 1, limit = 10 } = req.query;
+        const { sort, page = 1, limit = 10, phone } = req.query;
         
         // Chuyển đổi page và limit thành số
         const pageNum = parseInt(page);
@@ -17,10 +17,14 @@ const getAllComments = async (req, res) => {
             });
         }
         
+        // Xử lý filter phone
+        const filterPhone = phone === 'true';
+        
         const result = await commentService.getAllComments({ 
             sort: sort || 'timestamp',
             page: pageNum,
-            limit: limitNum
+            limit: limitNum,
+            filterPhone: filterPhone
         });
         
         res.json({ 

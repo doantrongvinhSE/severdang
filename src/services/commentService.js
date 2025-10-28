@@ -5,7 +5,7 @@ const moment = require('moment-timezone');
 
 const PostModel = require('../models/postModel');
 
-const getAllComments = async ({ sort = 'timestamp', page = 1, limit = 10 } = {}) => {
+const getAllComments = async ({ sort = 'timestamp', page = 1, limit = 10, filterPhone = false } = {}) => {
   // Danh sách các field được phép sort
   const allowedSortFields = ['timestamp'];
 
@@ -15,8 +15,20 @@ const getAllComments = async ({ sort = 'timestamp', page = 1, limit = 10 } = {})
   // Tính toán offset cho phân trang
   const offset = (page - 1) * limit;
 
-  // Lấy tổng số bản ghi
+  // Tạo điều kiện where cho filter phone
+  const whereCondition = {};
+  if (filterPhone) {
+    whereCondition.phone = {
+      [Op.and]: [
+        { [Op.ne]: null },
+        { [Op.ne]: '' } // Cũng loại bỏ chuỗi rỗng
+      ]
+    };
+  }
+
+  // Lấy tổng số bản ghi với filter
   const totalItems = await CommentModel.count({
+    where: whereCondition,
     include: [
       {
         model: PostModel,
@@ -26,8 +38,9 @@ const getAllComments = async ({ sort = 'timestamp', page = 1, limit = 10 } = {})
     ]
   });
 
-  // Lấy dữ liệu với phân trang
+  // Lấy dữ liệu với phân trang và filter
   const rows = await CommentModel.findAll({
+    where: whereCondition,
     include: [
       {
         model: PostModel,
